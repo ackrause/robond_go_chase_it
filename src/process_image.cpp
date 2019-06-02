@@ -5,6 +5,9 @@
 class ProcessImage {
 public:
 	ProcessImage() {
+		// Set velocities
+		set_max_velocities();
+
 		// Set up client to request services from command_robot
 		_client = _n.serviceClient<ball_chaser::DriveToTarget>("/ball_chaser/command_robot");
 
@@ -18,10 +21,21 @@ public:
 	}
 
 private:
-	const float STOP = 0;						// stop linear and/or angular movement
-	const float FORWARD = 0.125;	 			// "max" forward velocity
-	const float TURN_COUNTERCLOCKWISE = 0.5; 	// "max" counter-clockwise rotational velocity
-	const float TURN_CLOCKWISE = -0.5; 			// "max" clockwise rotational velocity
+	// default velocities
+	const float DEFAULT_STOP = 0;
+	const float DEFAULT_FORWARD = 0.125;
+	const float DEFAULT_TURNING = 0.25;
+
+	// parameter names
+	const std::string STOP_PARAM = "stop";
+	const std::string FORWARD_VELOCITY_PARAM = "forward_vel";
+	const std::string TURNING_VELOCITY_PARAM = "turning_vel";
+
+	// max velocities for this node
+	float _stop;					// stop linear and/or angular movement
+	float _forward;	 				// "max" forward velocity
+	float _turn_counterclockwise; 	// "max" counter-clockwise rotational velocity
+	float _turn_clockwise; 			// "max" clockwise rotational velocity
 
 	const int MAX_RGB_VALUE = 255;	// maximum value for a color channel in image
 
@@ -37,6 +51,32 @@ private:
 
 	// Subscriber for the image data
 	ros::Subscriber _img_sub;
+
+	// Grabs max forward and turning velocities from ros::params if they are available
+	void set_max_velocities() {
+		double turning;
+
+		if(!ros::param::get(STOP_PARAM, _stop)) {
+			_stop = DEFAULT_STOP;
+		}
+
+		if(!ros::param::get(FORWARD_VELOCITY_PARAM, _forward)) {
+			_forward = DEFAULT_FORWARD;
+		}
+
+		if(!ros::param::get(TURNING_VELOCITY_PARAM, turning)) {
+			turning = DEFAULT_TURNING;
+		}
+
+		// a positive turning velocity corresponds to a counter-clockwise turn
+		if(turning >= 0) {
+			_turn_clockwise = -1 * turning;
+			_turn_counterclockwise = turning;
+		} else {
+			_turn_clockwise = turning;
+			_turn_counterclockwise = -1 * turning;
+		}
+	}
 
 	// This function calls the command_robot service to drive the robot in the specified direction
 	void drive_robot(float lin_x, float ang_z) {
@@ -77,20 +117,20 @@ private:
 
 		if(white_pixel_column == -1) {
 			// Stop if white ball is not visible
-			linear_velocity = STOP;
-			angular_velocity = STOP;
+			linear_velocity = _stop;
+			angular_velocity = _stop;
 		} else if (white_pixel_column <= max_left_pos) {
 			// Turn counter-clockwise if ball is in the left third of image
-			linear_velocity = STOP;
-			angular_velocity = TURN_COUNTERCLOCKWISE;
+			linear_velocity = _stop;
+			angular_velocity = _turn_counterclockwise;
 		} else if (white_pixel_column <= max_center_pos) {
 			// Go straight forward if ball is in center of image
-			linear_velocity = FORWARD;
-			angular_velocity = STOP;
+			linear_velocity = _forward;
+			angular_velocity = _stop;
 		} else {
 			// Turn clockwise if ball is in right third of image
-			linear_velocity = STOP;
-			angular_velocity = TURN_CLOCKWISE;
+			linear_velocity = _stop;
+			angular_velocity = _turn_clockwise;
 		}
 
 		drive_robot(linear_velocity, angular_velocity);
