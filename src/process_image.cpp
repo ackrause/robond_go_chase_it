@@ -18,10 +18,10 @@ public:
 	}
 
 private:
-	const float ZERO_VELOCITY = 0;			 // stop linear and/or angular movement
-	const float FORWARD_VELOCITY = 0.25;	 // "max" forward velocity
-	const float CCW_ANGULAR_VELOCITY = 0.25; // "max" counter-clockwise rotational velocity
-	const float CW_ANGULAR_VELOCITY = -0.25; // "max" clockwise rotational velocity
+	const float STOP = 0;						// stop linear and/or angular movement
+	const float FORWARD = 0.125;	 			// "max" forward velocity
+	const float TURN_COUNTERCLOCKWISE = 0.5; 	// "max" counter-clockwise rotational velocity
+	const float TURN_CLOCKWISE = -0.5; 			// "max" clockwise rotational velocity
 
 	const int MAX_RGB_VALUE = 255;	// maximum value for a color channel in image
 
@@ -65,7 +65,7 @@ private:
 		float linear_velocity, angular_velocity;
 
 		// Technically searches for a white pixel rather than a white ball, 
-		// so can be confused by e.g. white walls
+		// so it can be confused by e.g. white walls
 		for(int i = 0; i < img.height * img.step; i += 3) {
 			if(img.data[i] == MAX_RGB_VALUE && 		// red channel
 			   img.data[i+1] == MAX_RGB_VALUE && 	// green channel
@@ -77,20 +77,20 @@ private:
 
 		if(white_pixel_column == -1) {
 			// Stop if white ball is not visible
-			linear_velocity = ZERO_VELOCITY;
-			angular_velocity = ZERO_VELOCITY;
+			linear_velocity = STOP;
+			angular_velocity = STOP;
 		} else if (white_pixel_column <= max_left_pos) {
 			// Turn counter-clockwise if ball is in the left third of image
-			linear_velocity = FORWARD_VELOCITY / 2;
-			angular_velocity = CCW_ANGULAR_VELOCITY;
+			linear_velocity = STOP;
+			angular_velocity = TURN_COUNTERCLOCKWISE;
 		} else if (white_pixel_column <= max_center_pos) {
 			// Go straight forward if ball is in center of image
-			linear_velocity = FORWARD_VELOCITY;
-			angular_velocity = ZERO_VELOCITY;
+			linear_velocity = FORWARD;
+			angular_velocity = STOP;
 		} else {
 			// Turn clockwise if ball is in right third of image
-			linear_velocity = FORWARD_VELOCITY / 2;
-			angular_velocity = CW_ANGULAR_VELOCITY;
+			linear_velocity = STOP;
+			angular_velocity = TURN_CLOCKWISE;
 		}
 
 		drive_robot(linear_velocity, angular_velocity);
